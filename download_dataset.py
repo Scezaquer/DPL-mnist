@@ -7,32 +7,33 @@ with open("model_weights.dpl", "w") as file:
     file.write("""// 65 (8*8 + 1) input neurons
 // 32 hidden neurons in layer 1
 // 32 hidden neurons in layer 2
-// 32 hidden neurons in layer 3
 // 10 output neurons (for digits 0-9)
 
 """)
     file.write(f"let input_layer: array[float] = {[0.0] * 65};\n")
     file.write(f"let activation1: array[float] = {[0.0] * 32};\n")
     file.write(f"let activation2: array[float] = {[0.0] * 32};\n")
-    file.write(f"let activation3: array[float] = {[0.0] * 32};\n")
     file.write(f"let output_layer: array[float] = {[0.0] * 10};\n")
 
-    file.write("let activations: array[array[float]] = [input_layer, activation1, activation2, activation3, output_layer];\n\n\n")
+    file.write("let activations: array[array[float]] = [input_layer, activation1, activation2, output_layer];\n\n\n")
 
     file.write(f"let weights1[32, 65]: array[float] = {[0.0] * 65 * 32};\n")
     file.write(f"let weights2[32, 32]: array[float] = {[0.0] * 32 * 32};\n")
-    file.write(f"let weights3[32, 32]: array[float] = {[0.0] * 32 * 32};\n")
-    file.write(f"let weights4[10, 32]: array[float] = {[0.0] * 32 * 10};\n")
+    file.write(f"let weights3[10, 32]: array[float] = {[0.0] * 32 * 10};\n")
 
-    file.write("let weights: array[array[float]] = [weights1, weights2, weights3, weights4];\n\n")
-    file.write("let dims: array[int] = [65, 32, 32, 32, 10];\n\n")
+    file.write("let weights: array[array[float]] = [weights1, weights2, weights3];\n\n")
+    file.write("let dims: array[int] = [65, 32, 32, 10];\n\n")
 
     file.write(f"let grad1[32, 65]: array[float] = {[0.0] * 65 * 32};\n")
     file.write(f"let grad2[32, 32]: array[float] = {[0.0] * 32 * 32};\n")
-    file.write(f"let grad3[32, 32]: array[float] = {[0.0] * 32 * 32};\n")
-    file.write(f"let grad4[10, 32]: array[float] = {[0.0] * 32 * 10};\n")
+    file.write(f"let grad3[10, 32]: array[float] = {[0.0] * 32 * 10};\n")
 
-    file.write("let grad: array[array[float]] = [grad1, grad2, grad3, grad4];\n\n")
+    file.write("let grad: array[array[float]] = [grad1, grad2, grad3];\n\n")
+
+    file.write(f"let net_inputs1[32]: array[float] = {[0.0] * 32};\n")
+    file.write(f"let net_inputs2[32]: array[float] = {[0.0] * 32};\n")
+    file.write(f"let net_inputs3[10]: array[float] = {[0.0] * 10};\n")
+    file.write("let net_inputs: array[array[float]] = [net_inputs1, net_inputs2, net_inputs3];\n\n")
 
 digits = datasets.load_digits()
 

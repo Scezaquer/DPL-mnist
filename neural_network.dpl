@@ -71,7 +71,7 @@ fn matmult(a: array[float], b: array[float], result_buffer: array[float], m: int
     return result_buffer;
 }
 
-fn predict(input: array[float], weights: array[array[float]], activations: array[array[float]], dims: array[int]): float {
+fn predict(input: array[float], weights: array[array[float]], activations: array[array[float]], net_inputs: array[array[float]], dims: array[int]): float {
     // Forward pass through the network to get predictions
 
     let i: int;
@@ -85,14 +85,31 @@ fn predict(input: array[float], weights: array[array[float]], activations: array
         let output_size: int = dims[layer + 1];
 
         // Matrix multiplication
-        matmult(activations[layer], weights[layer], activations[layer + 1], 1, input_size, output_size);
+        matmult(activations[layer], weights[layer], net_inputs[layer], 1, input_size, output_size);
 
         // Apply activation function
         let i: int;
         for (i = 0; i < output_size; i = i + 1) {
-            activations[layer + 1][i] = sigmoid(activations[layer + 1][i]);
+            activations[layer + 1][i] = sigmoid(net_inputs[layer][i]);
         }
     }
+}
+
+fn shuffle(rng: int, inputs: array[array[float]], labels: array[int]): int {
+    let i: int;
+    for (i = inputs[-1]: int - 1; i > 0; i = i - 1) {
+        let j: int = std::random::random_range(rng, 0, i + 1);
+        rng = std::random::random(rng);
+
+        let temp_input: array[float] = inputs[i];
+        inputs[i] = inputs[j];
+        inputs[j] = temp_input;
+
+        let temp_label: int = labels[i];
+        labels[i] = labels[j];
+        labels[j] = temp_label;
+    }
+    return rng;
 }
 
 fn fit(
@@ -101,6 +118,7 @@ fn fit(
     weights: array[array[float]],
     activations: array[array[float]],
     grad: array[array[float]],
+    net_inputs: array[array[float]],
     dims: array[int],
     lr: float,
     epochs: int,
@@ -110,7 +128,10 @@ fn fit(
     std::io::println("Starting training...");
 
     let epoch: int;
+    let rng: int = 42;
     for (epoch = 0; epoch < epochs; epoch = epoch + 1) {
+
+        rng = shuffle(rng, inputs, labels);
 
         let correct: int = 0;
         let incorrect: int = 0;
@@ -123,7 +144,7 @@ fn fit(
             let i: int;
             for (i = batch_start; i < batch_end; i = i + 1) {
                 // Forward pass
-                predict(inputs[i], weights, activations, dims);
+                predict(inputs[i], weights, activations, net_inputs, dims);
 
                 // Compute loss (cross-entropy)
                 let output_layer: int = dims[-1] - 1;
@@ -154,13 +175,13 @@ fn fit(
                 let output_layer_idx: int = dims[-1] - 1;
                 let label: int = labels[i];
 
-                // Compute output layer error
+                // Compute gradient for output layer
                 let k: int;
-                for (k = 0; k < dims[output_layer_idx]; k = k + 1) {
+                for (k = 0; k < output_size; k = k + 1) {
                     if (k == label) {
-                        grad[output_layer_idx-1][k] = activations[output_layer_idx][k] - 1.0;
+                        grad[output_layer-1][k] = activations[output_layer][k] - 1.0; // Target is 1 for correct class
                     } else {
-                        grad[output_layer_idx-1][k] = activations[output_layer_idx][k];
+                        grad[output_layer-1][k] = activations[output_layer][k]; // Target is 0 for other classes
                     }
                 }
 
@@ -176,7 +197,7 @@ fn fit(
                         for (n = 0; n < next_layer_size; n = n + 1) {
                             error += grad[l + 1][n] * weights[l+1][m * next_layer_size + n];
                         }
-                        grad[l][m] = error * sigmoid_derivative(activations[l+1][m]);
+                        grad[l][m] = error * sigmoid_derivative(net_inputs[l][m]);
                     }
                 }
 
@@ -224,6 +245,7 @@ fn test(
     labels: array[int],
     weights: array[array[float]],
     activations: array[array[float]],
+    net_inputs: array[array[float]],
     dims: array[int]
     ): float {
     // Test the neural network and return accuracy
@@ -237,7 +259,7 @@ fn test(
 
     for (i = 0; i < inputs[-1]: int; i = i + 1) {
         // Forward pass
-        predict(inputs[i], weights, activations, dims);
+        predict(inputs[i], weights, activations, net_inputs, dims);
         // Get predicted class
         
         let max_value: float = activations[output_layer][0];
@@ -283,10 +305,10 @@ fn main(): int{
     let lr_decay: float = 0.99; // Learning rate decay factor
 
     // Initialize weights randomly
-    initialize_weights(43, weights);
-    fit(mnist_train, mnist_train_labels, weights, activations, grad, dims, lr, epochs, batch_size, lr_decay);
+    initialize_weights(42, weights);
+    fit(mnist_train, mnist_train_labels, weights, activations, grad, net_inputs, dims, lr, epochs, batch_size, lr_decay);
 
     #include <mnist_test.dpl>
-    test(mnist_test, mnist_test_labels, weights, activations, dims);
+    test(mnist_test, mnist_test_labels, weights, activations, net_inputs, dims);
     return 0;
 }

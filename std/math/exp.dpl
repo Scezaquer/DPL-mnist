@@ -1,0 +1,79 @@
+fn sqrt(x: float): float {
+	if (x < 0.0) {
+		exception("Square root of negative number", 1);
+	}
+	
+	let z: float = x;
+	let i: int;
+	for (i = 0; i < 10; i = i + 1) {
+		z = (z + x / z) / 2.0;
+	}
+	return z;
+}
+
+fn ln(x: float): float{
+	if (x <= 0.0) {
+		exception("Logarithm of non-positive number", 1);
+	}
+
+	let iter: int = 35;
+
+	let z: float = x-1.0;
+	let i: int;
+	for (i=0; i < iter; i = i + 1) {
+		z = z/(1.0 + sqrt(1.0 + z));
+	}
+	for (i=0; i < iter; i = i + 1) {
+		z = z*2.0;
+	}
+
+	return z;
+}
+
+fn powi(x: int, n: int): int {
+	if (n < 0) {
+		exception("Negative exponent", 1);
+	}
+
+	let result: int = 1;
+	let i: int;
+	for (i = 0; i < n; i = i + 1) {
+		result *= x;
+	}
+	return result;
+}
+
+fn powfi(x: float, n: int): float {
+	if (n < 0) {
+		exception("Negative exponent", 1);
+	}
+
+	let result: float = 1.0;
+	let i: int;
+	for (i = 0; i < n; i = i + 1) {
+		result *= x;
+	}
+	return result;
+}
+
+fn exp(x: float): float {
+	if (x < -709.0) {
+		return 0.0; // Underflow, exp(x) is too small to represent
+	} else if (x > 709.0) {
+		exception("Exponent too large", 1);
+		return 0.0; // Overflow, exp(x) is too large to represent
+	}
+
+	let iter: int = 35;
+	let z: float = x;
+	let i: int;
+	for (i = 0; i < iter; i = i + 1) {
+		z = z / 2.0;
+	}
+	z = 1.0 + z;
+	for (i = 0; i < iter; i = i + 1) {
+		z *= z;
+	}
+
+	return z;
+}

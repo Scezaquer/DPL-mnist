@@ -1,0 +1,304 @@
+#include <std>
+
+fn sigmoid(x: float): float {
+    if (x < -709.0) {
+        return 0.0; // Avoid overflow for large negative values
+    } else if (x > 709.0) {
+        return 1.0; // Avoid overflow for large positive values
+    }
+    return 1.0 / (1.0 + std::math::exp(-x));
+}
+
+fn sigmoid_derivative(x: float): float {
+    let sig: float = sigmoid(x);
+    return sig * (1.0 - sig);
+}
+
+fn softmax(x: array[float]): array[float] {
+    // Apply softmax activation function to the input array
+    let max_val: float = std::math::maxf(x);
+    let exp_sum: float = 0.0;
+    let i: int;
+
+    for (i = 0; i < x[-1]: int; i = i + 1) {
+        x[i] = std::math::exp(x[i] - max_val); // Subtract max for numerical stability
+        exp_sum += x[i];
+    }
+
+    for (i = 0; i < x[-1]: int; i = i + 1) {
+        x[i] /= exp_sum; // Normalize to get probabilities
+    }
+
+    return x;
+}
+
+fn initialize_weights(seed: int, weights: array[array[float]]): array[array[float]] {
+    // Initialize weights with random values between -0.5 and 0.5
+
+    let rng: int = seed;
+
+    let j: int;
+    for (j = 0; j < weights[-1]: int; j = j + 1) {
+        let arr: array[float] = weights[j];
+        let i: int;
+        for (i = 0; i < arr[-1]: int; i = i + 1) {
+            arr[i] = std::random::random_float(rng) - 0.5;
+            rng = std::random::random(rng);
+        }
+    }
+    
+    return weights;
+}
+
+fn matmult(a: array[float], b: array[float], result_buffer: array[float], m: int, n: int, p: int): array[float] {
+    // Matrix multiplication of a (m x n) and b (n x p) into result_buffer (m x p)
+
+    if (a[-1]: int != m * n || b[-1]: int != n * p || result_buffer[-1]: int != m * p) {
+        std::exception("Matrix dimensions do not match for multiplication.", 1);
+        return result_buffer; // Return empty buffer
+    }
+
+    let i: int; let j: int; let k: int;
+    for (i = 0; i < m; i = i + 1) {
+        for (j = 0; j < p; j = j + 1) {
+            result_buffer[i * p + j] = 0.0; // Initialize result element
+            for (k = 0; k < n; k = k + 1) {
+                result_buffer[i * p + j] += a[i * n + k] * b[k * p + j];
+            }
+        }
+    }
+
+    return result_buffer;
+}
+
+fn predict(input: array[float], weights: array[array[float]], activations: array[array[float]], dims: array[int]): float {
+    // Forward pass through the network to get predictions
+
+    let i: int;
+    for (i = 0; i < activations[0][-1]: int; i = i + 1) {
+        activations[0][i] = input[i]; // Copy input to first layer
+    }
+
+    let layer: int;
+    for (layer = 0; layer < weights[-1]: int; layer = layer + 1) {
+        let input_size: int = dims[layer];
+        let output_size: int = dims[layer + 1];
+
+        // Matrix multiplication
+        matmult(activations[layer], weights[layer], activations[layer + 1], 1, input_size, output_size);
+
+        // Apply activation function
+        let i: int;
+        for (i = 0; i < output_size; i = i + 1) {
+            activations[layer + 1][i] = sigmoid(activations[layer + 1][i]);
+        }
+    }
+}
+
+fn fit(
+    inputs: array[array[float]],
+    labels: array[int],
+    weights: array[array[float]],
+    activations: array[array[float]],
+    grad: array[array[float]],
+    dims: array[int],
+    lr: float,
+    epochs: int,
+    batch_size: int,
+    lr_decay: float): array[array[float]] {
+    // Train the neural network using backpropagation with minibatches
+
+    std::io::println("Starting training...");
+
+    let epoch: int;
+    for (epoch = 0; epoch < epochs; epoch = epoch + 1) {
+
+        let correct: int = 0;
+        let incorrect: int = 0;
+        let loss: float = 0.0;
+
+        let batch_start: int;
+        for (batch_start = 0; batch_start < inputs[-1]: int; batch_start = batch_start + batch_size) {
+            let batch_end: int = std::math::mini([batch_start + batch_size, inputs[-1]: int]);
+
+            let i: int;
+            for (i = batch_start; i < batch_end; i = i + 1) {
+                // Forward pass
+                predict(inputs[i], weights, activations, dims);
+
+                // Compute loss (cross-entropy)
+                let output_layer: int = dims[-1] - 1;
+                let output_size: int = dims[output_layer];
+                let k: int;
+                for (k = 0; k < output_size; k = k + 1) {
+                    let label: int = labels[i];
+                    if (k == label) {
+                        loss -= std::math::ln(activations[output_layer][k]); // Target is 1 for correct class
+                    } else {
+                        loss -= std::math::ln(1.0 - activations[output_layer][k]); // Target is 0 for other classes
+                    }
+                }
+
+                // Tally up correct and incorrect predictions
+                let predicted_class: int = 0;
+                let max_value: float = activations[output_layer][0];
+                for (k = 1; k < output_size; k = k + 1) {
+                    if (activations[output_layer][k] > max_value) {
+                        max_value = activations[output_layer][k];
+                        predicted_class = k;
+                    }
+                }
+
+                if (predicted_class == labels[i]) { correct += 1; } else { incorrect += 1; }
+
+                // Backward pass
+                // Compute output layer error
+                let output_layer: int = dims[-1] - 1;
+                let output_size: int = dims[output_layer];
+                let label: int = labels[i];
+
+                // Compute gradient for output layer
+                let k: int;
+                for (k = 0; k < output_size; k = k + 1) {
+                    if (k == label) {
+                        grad[output_layer-1][k] = activations[output_layer][k] - 1.0; // Target is 1 for correct class
+                    } else {
+                        grad[output_layer-1][k] = activations[output_layer][k]; // Target is 0 for other classes
+                    }
+
+                    grad[output_layer-1][k] *= sigmoid_derivative(activations[output_layer][k]);
+                }
+
+                // Backpropagate the error
+                let l: int;
+                for (l = output_layer - 2; l >= 0; l = l - 1) {
+                    let input_size: int = dims[l];
+                    let output_size: int = dims[l + 1];
+
+                    // Compute gradient for hidden layers
+                    let i: int;
+                    for (i = 0; i < input_size; i = i + 1) {
+                        grad[l][i] = 0.0;
+                        let j: int;
+                        for (j = 0; j < output_size; j = j + 1) {
+                            grad[l][i] += grad[l + 1][j] * weights[l][i * output_size + j];
+                        }
+                        grad[l][i] *= sigmoid_derivative(activations[l][i]);
+                    }
+                }
+
+                // Update weights
+                let l: int;
+                for (l = 0; l < weights[-1]: int; l = l + 1) {
+                    let input_size: int = dims[l];
+                    let output_size: int = dims[l + 1];
+
+                    let w: array[float] = weights[l];
+                    let g: array[float] = grad[l];
+
+                    let m: int;
+                    for (m = 0; m < input_size; m = m + 1) {
+                        let n: int;
+                        for (n = 0; n < output_size; n = n + 1) {
+                            // Update weight
+                            w[m * output_size + n] -= lr * g[n] * activations[l][m];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Average loss over the batch
+        loss /= std::math::inttof(inputs[-1]: int);
+        std::io::print("Epoch ");
+        std::io::printi(epoch + 1);
+        std::io::print(": Loss = ");
+        std::io::printf(loss);
+        std::io::print(", Correct: ");
+        std::io::printi(correct);
+        std::io::print(", Incorrect: ");
+        std::io::printi(incorrect);
+        let accuracy: float = std::math::inttof(correct) / std::math::inttof(inputs[-1]: int);
+        std::io::print(", Accuracy = ");
+        std::io::printf(accuracy * 100.0);
+        std::io::print(", Learning Rate = ");
+        std::io::printfln(lr);
+
+        // Decay learning rate
+        lr *= lr_decay;
+    }
+
+    return weights;
+}
+
+fn test(
+    inputs: array[array[float]],
+    labels: array[int],
+    weights: array[array[float]],
+    activations: array[array[float]],
+    dims: array[int]
+    ): float {
+    // Test the neural network and return accuracy
+    let correct: int = 0;
+    let incorrect: int = 0;
+    let i: int;
+
+    let output_layer: int = activations[-1]: int - 1;
+    let predicted_class: int = 0;
+    let output_size: int = dims[output_layer];
+
+    for (i = 0; i < inputs[-1]: int; i = i + 1) {
+        // Forward pass
+        predict(inputs[i], weights, activations, dims);
+        // Get predicted class
+        
+        let max_value: float = activations[output_layer][0];
+        let k: int;
+        for (k = 1; k < output_size; k = k + 1) {
+            if (activations[output_layer][k] > max_value) {
+                max_value = activations[output_layer][k];
+                predicted_class = k;
+            }
+        }
+        // Check if prediction is correct
+        if (predicted_class == labels[i]) {
+            correct += 1;
+        } else {
+            incorrect += 1;
+        }
+    }
+
+    std::io::print("Correct: ");
+    std::io::printi(correct);
+    std::io::print(", Incorrect: ");
+    std::io::printiln(incorrect);
+
+    let accuracy: float = std::math::inttof(correct) / std::math::inttof(inputs[-1]: int);
+    std::io::print("Test Accuracy: ");
+    std::io::printfln(accuracy * 100.0);
+    return accuracy;
+}
+
+fn main(): int{
+    #include <model_weights.dpl>
+    #include <mnist_train.dpl>
+
+    // 65 (8*8 + 1) input neurons
+    // 32 hidden neurons in layer 1
+    // 32 hidden neurons in layer 2
+    // 32 hidden neurons in layer 3
+    // 10 output neurons (for digits 0-9)
+
+    let lr: float = 0.01; // Learning rate
+    let epochs: int = 35; // Number of training epochs
+    let batch_size: int = 32; // Size of each training batch
+    let lr_decay: float = 0.99; // Learning rate decay factor
+
+    // Initialize weights randomly
+    initialize_weights(42, weights);
+    fit(mnist_train, mnist_train_labels, weights, activations, grad, dims, lr, epochs, batch_size, lr_decay);
+
+    #include <mnist_test.dpl>
+    test(mnist_test, mnist_test_labels, weights, activations, dims);
+    return 0;
+}

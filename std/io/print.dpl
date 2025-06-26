@@ -1,0 +1,150 @@
+#include <../math/cast.dpl>
+
+fn print(s: str): int {
+	// Print s to stdout
+
+	s[-1] : int * 8;	// Move the length of the string into rax
+	asm "	mov rdx, rax	; length of string";
+	s;	// Move the pointer to the string into rax
+	asm "	mov rsi, rax	; pointer to string
+	mov rax, 1		; syscall: sys_write
+	mov rdi, 1		; file descriptor: stdout
+	syscall" : int;
+}
+
+fn println(s: str): int {
+	// Print s to stdout, followed by a newline
+
+	print(s);
+	print("\n");
+}
+
+fn printchar(c: char): int {
+	// Print the character c to stdout
+
+	print([c]);
+}
+
+fn printcharln(c: char): int {
+	// Print the character c to stdout, followed by a newline
+
+	printchar(c);
+	print("\n");
+}
+
+fn printi(i: int): int {
+	// Print the integer i to stdout
+
+	if (i == 0) {
+		print("0");
+		return 0;
+	}
+
+	if (i < 0) {
+		print("-");
+		i = -i;
+	}
+
+	let s: str = ['', '', '', '', '', '', '', '']; // Max 64 chars
+	let j: int = 0;
+
+	while (i > 0) {
+		s[7 - j/8] = (((s[7 - j/8] : int) << 8) | ((i % 10) + ('0' : int))) : char;
+		i = i / 10;
+		j = j + 1;
+	}
+	print(s);
+}
+
+fn printiln(i: int): int {
+	// Print the integer i to stdout, followed by a newline
+
+	printi(i);
+	print("\n");
+}
+
+fn printf(f: float): int {
+	// Print the float f to stdout
+
+	if (f < 0.0) {
+		print("-");
+		f = -f;
+	}
+
+	let i: int = floor(f); // Convert float to int
+	printi(i); // Print the integer part
+
+	let frac: float = f - inttof(i); // Get the fractional part
+	print("."); // Print the decimal point
+	frac *= 1000000.0; // Scale the fractional part to 6 decimal places
+	i = floor(frac); // Convert the scaled fractional part to int
+	printi(i); // Print the fractional part
+
+	return 0;
+}
+
+fn printfln(f: float): int {
+	// Print the float f to stdout, followed by a newline
+
+	printf(f);
+	print("\n");
+}
+
+fn printbool(b: bool): int {
+	// Print the boolean b to stdout
+
+	if (b) {
+		print("true");
+	} else {
+		print("false");
+	}
+}
+
+fn printboolln(b: bool): int {
+	// Print the boolean b to stdout, followed by a newline
+
+	printbool(b);
+	print("\n");
+}
+
+fn printarray:<T>(a: array[T]): int {
+	// Print the content of array a to stdout
+
+	print("[");
+	let i: int;
+	for (i = 0; i < a[-1] : int; i = i + 1) {
+		if (i > 0) {
+			print(", ");
+		}
+		printi(a[i]: int);
+	}
+	print("]");
+}
+
+fn printarrayln:<T>(a: array[T]): int {
+	// Print the content of array a to stdout, followed by a newline
+
+	printarray:<T>(a);
+	print("\n");
+}
+
+fn printarrayf:<T>(a: array[T]): int {
+	// Print the content of array a to stdout, with each element on a new line
+
+	print("[");
+	let i: int;
+	for (i = 0; i < a[-1] : int; i = i + 1) {
+		if (i > 0) {
+			print(", ");
+		}
+		printf(a[i]: float);
+	}
+	print("]");
+}
+
+fn printarrayfln:<T>(a: array[T]): int {
+	// Print the content of array a to stdout, with each element on a new line, followed by a newline
+
+	printarrayf:<T>(a);
+	print("\n");
+}

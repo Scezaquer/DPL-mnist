@@ -1,0 +1,14 @@
+#include <io>
+
+fn exception(e: str, error_code: int): int {
+	// Print the exception message to standard error and exit with the error code
+
+	io::print("Exception: ");
+	io::println(e);
+
+	error_code;
+	asm "	mov rdi, rax
+	mov rax, 60
+	syscall
+	";
+}

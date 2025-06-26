@@ -1,0 +1,50 @@
+fn ftoint(x : float) : int {
+	// Cast float to int
+
+	// This method rounds to the nearest integer.
+	// x.5 gets rounded up or down, depends, see cvtsd2si doc.
+
+	x;	// Move x into xmm0
+	asm "	cvtsd2si rax, xmm0  ; Convert double in xmm0 to 64-bit integer in rax" : int;
+}
+
+fn inttof(x : int) : float {
+	// Cast int to float
+
+	x; // Move x into rax
+	asm "	cvtsi2sd xmm0, rax	; Convert 64-bit integer in rax to double in xmm0" : float;
+}
+
+fn floor(x: float): int {
+	// Return the largest integer less than or equal to x
+
+	asm "	stmxcsr [mxcsr_val]
+	mov eax, [mxcsr_val]
+	and eax, 0xFFFF9FFF	; Clear the round control bits
+	or eax, 0x00002000	; // Set round down (toward -inf)
+	mov [mxcsr_val], eax
+	ldmxcsr [mxcsr_val]";
+	x;	// Move x into xmm0
+	asm "	cvtsd2si rax, xmm0; round down (toward -inf)" : int;
+}
+
+fn ceil(x: float): int {
+	// Return the smallest integer greater than or equal to x
+
+	asm "	stmxcsr [mxcsr_val]
+	mov eax, [mxcsr_val]
+	and eax, 0xFFFF9FFF	; // Clear the round control bits
+	or eax, 0x00003000	; // Set round up (toward +inf)
+	mov [mxcsr_val], eax
+	ldmxcsr [mxcsr_val]";
+	x;	// Move x into xmm0
+	asm "	cvtsd2si rax, xmm0; round up (toward +inf)" : int;
+}
+
+fn isint(x : float) : bool {
+	// Check if x is an integer
+
+	let i: int = floor(x); // Convert x to int
+	let f: float = inttof(i); // Convert the int back to float
+	return (f == x); // Check if the float is equal to the original float
+}

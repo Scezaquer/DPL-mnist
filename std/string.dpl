@@ -1,0 +1,62 @@
+#include <exception.dpl>
+
+fn strget(s: str, i: int): char {
+	// Get the character at index i from the string s
+	let a: int = i % 8;
+	let b: int = i / 8;
+
+	if (b >= s[-1] : int) {
+		exception("Index out of bounds", 1);
+	} else if (i < 0) {
+		exception("Index out of bounds", 1);
+	}
+
+	return ((s[b] : int) >> (a * 8) & 0xFF) : char;
+}
+
+fn strset(s: str, i: int, c: char): str {
+	// Set the character at index i in the string s to c
+	let a: int = i % 8;
+	let b: int = i / 8;
+
+	if (b >= s[-1] : int) {
+		exception("Index out of bounds", 1);
+	} else if (i < 0) {
+		exception("Index out of bounds", 1);
+	}
+
+	s[b] = (((s[b] : int) & ~(0xFF << (a * 8))) | ((c : int) << (a * 8))) : char;
+
+	return s;
+}
+
+fn strlen(s: str): int {
+	// Get the number of bytes in the string s
+	let len: int = s[-1] : int - 1;
+
+	if len == 0 {
+		return 0;
+	}
+
+	let i: int;
+	for (i = 7; i >= 0; i = i - 1) {
+		if (((s[len] : int) & (0xFF << (i * 8))) == 0) {
+			break;
+		}
+	}
+	return len*8 + i - 1;
+}
+
+fn strcpy(s: str, t: str): str {
+	// Copy the string t into s
+	let len: int = t[-1] : int;
+	if (len != s[-1] : int) {
+		exception("Mismatched string lengths", 1);
+	}
+
+	let i: int;
+	for (i = 0; i < len; i = i + 1) {
+		s[i] = t[i];
+	}
+	return s;
+}

@@ -1,0 +1,9 @@
+#namespace math
+
+#include <constants.dpl>
+#include <cast.dpl>
+#include <arithmetic.dpl>
+#include <combinatorics.dpl>
+#include <exp.dpl>
+#include <trig.dpl>
+#include <arrays.dpl>

@@ -1,0 +1,94 @@
+#include <arithmetic.dpl>
+#include <combinatorics.dpl>
+#include <constants.dpl>
+#include <exp.dpl>
+
+fn sin(x : float) : float {
+	// This takes radians as input
+
+	// Reduce x to a value between 0 and pi/2:
+	let neg: bool = false;
+	if (x < 0.0) {
+		neg = !neg;
+		x = -x;
+	}
+
+	x = mod(x, 2.0 * PI);
+	if (x > PI) {
+		neg = !neg;
+		x = 2.0 * PI - x;
+	}
+
+	if (x > PI / 2.0) {
+		x = PI - x;
+	}
+
+	// Use Taylor series expansion for sin(x)
+
+	let s: float = 0.0;
+	let i: int;
+	for (i = 0; i < 10; i += 1) {
+		s += inttof(powi(-1, i)) * powfi(x, 2 * i + 1) / inttof(factorial(2 * i + 1));
+	}
+
+	if (neg) { s *= -1.0; }
+	return s;
+}
+
+fn cos(x: float): float {
+	// Takes radians as inputs
+
+	// Simply use sin(x + PI/2)
+	x += PI / 2.0;
+	return sin(x);
+}
+
+fn tan(x: float): float {
+	// Takes radians as input
+
+	let s: float = sin(x);
+	let c: float = cos(x);
+
+	if (absf(c) < 0.0000000000001) {
+		exception("Division by zero in tan", 1);
+	}
+
+	return s / c;
+}
+
+fn cot(x: float): float {
+	// Takes radians as input
+
+	let s: float = sin(x);
+	let c: float = cos(x);
+
+	if (absf(s) < 0.0000000000001) {
+		exception("Division by zero in cot", 1);
+	}
+
+	return c / s;
+}
+
+fn sec(x: float): float {
+	// Takes radians as input
+
+	let c: float = cos(x);
+
+	if (absf(c) < 0.0000000000001) {
+		exception("Division by zero in sec", 1);
+	}
+
+	return 1.0 / c;
+}
+
+fn csc(x: float): float {
+	// Takes radians as input
+
+	let s: float = sin(x);
+
+	if (absf(s) < 0.0000000000001) {
+		exception("Division by zero in csc", 1);
+	}
+
+	return 1.0 / s;
+}

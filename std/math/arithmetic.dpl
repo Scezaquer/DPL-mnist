@@ -1,0 +1,29 @@
+#include <cast.dpl>
+
+fn mod(x: float, y: float): float {
+	if (absf(y) < 0.000000000000001) {
+		exception("Division by zero", 1);
+	}
+	
+	let result: float = x - (y * inttof(floor(x / y)));
+	if (result < 0.0) {
+		result += y;
+	}
+	return result;
+}
+
+fn absf(x: float): float {
+	// Return the absolute value of x
+	if (x < 0.0) {
+		return -x;
+	}
+	return x;
+}
+
+fn absi(x: int): int {
+	// Return the absolute value of x
+	if (x < 0) {
+		return -x;
+	}
+	return x;
+}

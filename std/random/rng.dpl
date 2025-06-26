@@ -1,0 +1,35 @@
+#include <../exception.dpl>
+#include <../math/cast.dpl>
+
+fn random(seed: int): int {
+	// A simple linear congruential generator (LCG) for demonstration purposes
+	let a: int = 1664525;
+	let c: int = 1013904223;
+	let m: int = 0xFFFFFFFF; // 2^32 - 1
+
+	// Update the seed using the LCG formula
+	seed = (a * seed + c) & m;
+
+	// Return the next random number
+	return seed;
+}
+
+fn random_range(seed: int, min: int, max: int): int {
+	// Ensure min is less than max
+	if (min >= max) {
+		exception("Invalid range: min must be less than max", 1);
+	}
+
+	// Generate a random number in the range [min, max)
+	let range: int = max - min;
+	let rand_num: int = random(seed) % range;
+
+	// Return the random number adjusted to the specified range
+	return min + rand_num;
+}
+
+fn random_float(seed: int): float {
+	// Generate a random float in the range [0.0, 1.0)
+	let rand_int: int = random(seed);
+	return inttof(rand_int) / inttof(0xFFFFFFFF); // Normalize to [0.0, 1.0)
+}

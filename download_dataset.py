@@ -1,6 +1,7 @@
 from tqdm import tqdm
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 with open("model_weights.dpl", "w") as file:
     file.write("""// 65 (8*8 + 1) input neurons
@@ -39,8 +40,12 @@ digits = datasets.load_digits()
 n_samples = len(digits.images)
 data = digits.images.reshape((n_samples, -1))
 
+# Scale the data
+scaler = StandardScaler()
+data = scaler.fit_transform(data)
+
 X_train, X_test, y_train, y_test = train_test_split(
-    data, digits.target, test_size=0.1, shuffle=True
+    data, digits.target, test_size=0.2, shuffle=True
 )
 
 # X_train, y_train = X_train[:10], y_train[:10]  # Limit to 10 samples for testing

@@ -106,7 +106,6 @@ fn fit(
     epochs: int,
     batch_size: int,
     lr_decay: float): array[array[float]] {
-    // Train the neural network using backpropagation with minibatches
 
     std::io::println("Starting training...");
 
@@ -133,9 +132,9 @@ fn fit(
                 for (k = 0; k < output_size; k = k + 1) {
                     let label: int = labels[i];
                     if (k == label) {
-                        loss -= std::math::ln(activations[output_layer][k]); // Target is 1 for correct class
+                        loss -= std::math::ln(activations[output_layer][k]);
                     } else {
-                        loss -= std::math::ln(1.0 - activations[output_layer][k]); // Target is 0 for other classes
+                        loss -= std::math::ln(1.0 - activations[output_layer][k]);
                     }
                 }
 
@@ -152,38 +151,32 @@ fn fit(
                 if (predicted_class == labels[i]) { correct += 1; } else { incorrect += 1; }
 
                 // Backward pass
-                // Compute output layer error
-                let output_layer: int = dims[-1] - 1;
-                let output_size: int = dims[output_layer];
+                let output_layer_idx: int = dims[-1] - 1;
                 let label: int = labels[i];
 
-                // Compute gradient for output layer
+                // Compute output layer error
                 let k: int;
-                for (k = 0; k < output_size; k = k + 1) {
+                for (k = 0; k < dims[output_layer_idx]; k = k + 1) {
                     if (k == label) {
-                        grad[output_layer-1][k] = activations[output_layer][k] - 1.0; // Target is 1 for correct class
+                        grad[output_layer_idx-1][k] = activations[output_layer_idx][k] - 1.0;
                     } else {
-                        grad[output_layer-1][k] = activations[output_layer][k]; // Target is 0 for other classes
+                        grad[output_layer_idx-1][k] = activations[output_layer_idx][k];
                     }
-
-                    grad[output_layer-1][k] *= sigmoid_derivative(activations[output_layer][k]);
                 }
 
                 // Backpropagate the error
                 let l: int;
-                for (l = output_layer - 2; l >= 0; l = l - 1) {
-                    let input_size: int = dims[l];
-                    let output_size: int = dims[l + 1];
-
-                    // Compute gradient for hidden layers
-                    let i: int;
-                    for (i = 0; i < input_size; i = i + 1) {
-                        grad[l][i] = 0.0;
-                        let j: int;
-                        for (j = 0; j < output_size; j = j + 1) {
-                            grad[l][i] += grad[l + 1][j] * weights[l][i * output_size + j];
+                for (l = output_layer_idx - 2; l >= 0; l = l - 1) {
+                    let current_layer_size: int = dims[l+1];
+                    let next_layer_size: int = dims[l+2];
+                    let m: int;
+                    for (m = 0; m < current_layer_size; m = m + 1) {
+                        let error: float = 0.0;
+                        let n: int;
+                        for (n = 0; n < next_layer_size; n = n + 1) {
+                            error += grad[l + 1][n] * weights[l+1][m * next_layer_size + n];
                         }
-                        grad[l][i] *= sigmoid_derivative(activations[l][i]);
+                        grad[l][m] = error * sigmoid_derivative(activations[l+1][m]);
                     }
                 }
 
@@ -192,15 +185,12 @@ fn fit(
                 for (l = 0; l < weights[-1]: int; l = l + 1) {
                     let input_size: int = dims[l];
                     let output_size: int = dims[l + 1];
-
                     let w: array[float] = weights[l];
                     let g: array[float] = grad[l];
-
                     let m: int;
                     for (m = 0; m < input_size; m = m + 1) {
                         let n: int;
                         for (n = 0; n < output_size; n = n + 1) {
-                            // Update weight
                             w[m * output_size + n] -= lr * g[n] * activations[l][m];
                         }
                     }
@@ -208,7 +198,6 @@ fn fit(
             }
         }
 
-        // Average loss over the batch
         loss /= std::math::inttof(inputs[-1]: int);
         std::io::print("Epoch ");
         std::io::printi(epoch + 1);
@@ -224,7 +213,6 @@ fn fit(
         std::io::print(", Learning Rate = ");
         std::io::printfln(lr);
 
-        // Decay learning rate
         lr *= lr_decay;
     }
 
@@ -295,7 +283,7 @@ fn main(): int{
     let lr_decay: float = 0.99; // Learning rate decay factor
 
     // Initialize weights randomly
-    initialize_weights(42, weights);
+    initialize_weights(43, weights);
     fit(mnist_train, mnist_train_labels, weights, activations, grad, dims, lr, epochs, batch_size, lr_decay);
 
     #include <mnist_test.dpl>

@@ -18,14 +18,13 @@ fn softmax(x: array[float]): array[float] {
     // Apply softmax activation function to the input array
     let max_val: float = std::math::maxf(x);
     let exp_sum: float = 0.0;
-    let i: int;
 
-    for (i = 0; i < x[-1]: int; i = i + 1) {
+    for (let i: int = 0; i < x.len; i = i + 1) {
         x[i] = std::math::exp(x[i] - max_val); // Subtract max for numerical stability
         exp_sum += x[i];
     }
 
-    for (i = 0; i < x[-1]: int; i = i + 1) {
+    for (let i: int = 0; i < x.len; i = i + 1) {
         x[i] /= exp_sum; // Normalize to get probabilities
     }
 
@@ -37,11 +36,9 @@ fn initialize_weights(seed: int, weights: array[array[float]]): array[array[floa
 
     let rng: int = seed;
 
-    let j: int;
-    for (j = 0; j < weights[-1]: int; j = j + 1) {
+    for (let j: int = 0; j < weights.len; j = j + 1) {
         let arr: array[float] = weights[j];
-        let i: int;
-        for (i = 0; i < arr[-1]: int; i = i + 1) {
+        for (let i: int = 0; i < arr.len; i = i + 1) {
             arr[i] = std::random::random_float(rng) - 0.5;
             rng = std::random::random(rng);
         }
@@ -53,16 +50,15 @@ fn initialize_weights(seed: int, weights: array[array[float]]): array[array[floa
 fn matmult(a: array[float], b: array[float], result_buffer: array[float], m: int, n: int, p: int): array[float] {
     // Matrix multiplication of a (m x n) and b (n x p) into result_buffer (m x p)
 
-    if (a[-1]: int != m * n || b[-1]: int != n * p || result_buffer[-1]: int != m * p) {
+    if (a.len != m * n || b.len != n * p || result_buffer.len != m * p) {
         std::exception("Matrix dimensions do not match for multiplication.", 1);
         return result_buffer; // Return empty buffer
     }
 
-    let i: int; let j: int; let k: int;
-    for (i = 0; i < m; i = i + 1) {
-        for (j = 0; j < p; j = j + 1) {
+    for (let i: int = 0; i < m; i = i + 1) {
+        for (let j: int = 0; j < p; j = j + 1) {
             result_buffer[i * p + j] = 0.0; // Initialize result element
-            for (k = 0; k < n; k = k + 1) {
+            for (let k: int = 0; k < n; k = k + 1) {
                 result_buffer[i * p + j] += a[i * n + k] * b[k * p + j];
             }
         }
@@ -74,13 +70,11 @@ fn matmult(a: array[float], b: array[float], result_buffer: array[float], m: int
 fn predict(input: array[float], weights: array[array[float]], activations: array[array[float]], net_inputs: array[array[float]], dims: array[int]): float {
     // Forward pass through the network to get predictions
 
-    let i: int;
-    for (i = 0; i < activations[0][-1]: int; i = i + 1) {
+    for (let i: int = 0; i < activations[0].len; i = i + 1) {
         activations[0][i] = input[i]; // Copy input to first layer
     }
 
-    let layer: int;
-    for (layer = 0; layer < weights[-1]: int; layer = layer + 1) {
+    for (let layer: int = 0; layer < weights.len; layer = layer + 1) {
         let input_size: int = dims[layer];
         let output_size: int = dims[layer + 1];
 
@@ -88,16 +82,14 @@ fn predict(input: array[float], weights: array[array[float]], activations: array
         matmult(activations[layer], weights[layer], net_inputs[layer], 1, input_size, output_size);
 
         // Apply activation function
-        let i: int;
-        for (i = 0; i < output_size; i = i + 1) {
+        for (let i: int = 0; i < output_size; i = i + 1) {
             activations[layer + 1][i] = sigmoid(net_inputs[layer][i]);
         }
     }
 }
 
 fn shuffle(rng: int, inputs: array[array[float]], labels: array[int]): int {
-    let i: int;
-    for (i = inputs[-1]: int - 1; i > 0; i = i - 1) {
+    for (let i: int = inputs.len - 1; i > 0; i = i - 1) {
         let j: int = std::random::random_range(rng, 0, i + 1);
         rng = std::random::random(rng);
 
@@ -127,9 +119,8 @@ fn fit(
 
     std::io::println("Starting training...");
 
-    let epoch: int;
     let rng: int = 42;
-    for (epoch = 0; epoch < epochs; epoch = epoch + 1) {
+    for (let epoch: int = 0; epoch < epochs; epoch = epoch + 1) {
 
         rng = shuffle(rng, inputs, labels);
 
@@ -137,20 +128,17 @@ fn fit(
         let incorrect: int = 0;
         let loss: float = 0.0;
 
-        let batch_start: int;
-        for (batch_start = 0; batch_start < inputs[-1]: int; batch_start = batch_start + batch_size) {
-            let batch_end: int = std::math::mini([batch_start + batch_size, inputs[-1]: int]);
+        for (let batch_start: int = 0; batch_start < inputs.len; batch_start = batch_start + batch_size) {
+            let batch_end: int = std::math::mini([batch_start + batch_size, inputs.len]);
 
-            let i: int;
-            for (i = batch_start; i < batch_end; i = i + 1) {
+            for (let i: int = batch_start; i < batch_end; i = i + 1) {
                 // Forward pass
                 predict(inputs[i], weights, activations, net_inputs, dims);
 
                 // Compute loss (cross-entropy)
-                let output_layer: int = dims[-1] - 1;
+                let output_layer: int = dims.len - 1;
                 let output_size: int = dims[output_layer];
-                let k: int;
-                for (k = 0; k < output_size; k = k + 1) {
+                for (let k: int = 0; k < output_size; k = k + 1) {
                     let label: int = labels[i];
                     if (k == label) {
                         loss -= std::math::ln(activations[output_layer][k]);
@@ -172,12 +160,11 @@ fn fit(
                 if (predicted_class == labels[i]) { correct += 1; } else { incorrect += 1; }
 
                 // Backward pass
-                let output_layer_idx: int = dims[-1] - 1;
+                let output_layer_idx: int = dims.len - 1;
                 let label: int = labels[i];
 
                 // Compute gradient for output layer
-                let k: int;
-                for (k = 0; k < output_size; k = k + 1) {
+                for (let k: int = 0; k < output_size; k = k + 1) {
                     if (k == label) {
                         grad[output_layer-1][k] = activations[output_layer][k] - 1.0; // Target is 1 for correct class
                     } else {
@@ -186,15 +173,12 @@ fn fit(
                 }
 
                 // Backpropagate the error
-                let l: int;
-                for (l = output_layer_idx - 2; l >= 0; l = l - 1) {
+                for (let l: int = output_layer_idx - 2; l >= 0; l = l - 1) {
                     let current_layer_size: int = dims[l+1];
                     let next_layer_size: int = dims[l+2];
-                    let m: int;
-                    for (m = 0; m < current_layer_size; m = m + 1) {
+                    for (let m: int = 0; m < current_layer_size; m = m + 1) {
                         let error: float = 0.0;
-                        let n: int;
-                        for (n = 0; n < next_layer_size; n = n + 1) {
+                        for (let n: int = 0; n < next_layer_size; n = n + 1) {
                             error += grad[l + 1][n] * weights[l+1][m * next_layer_size + n];
                         }
                         grad[l][m] = error * sigmoid_derivative(net_inputs[l][m]);
@@ -202,16 +186,13 @@ fn fit(
                 }
 
                 // Update weights
-                let l: int;
-                for (l = 0; l < weights[-1]: int; l = l + 1) {
+                for (let l: int = 0; l < weights.len; l = l + 1) {
                     let input_size: int = dims[l];
                     let output_size: int = dims[l + 1];
                     let w: array[float] = weights[l];
                     let g: array[float] = grad[l];
-                    let m: int;
-                    for (m = 0; m < input_size; m = m + 1) {
-                        let n: int;
-                        for (n = 0; n < output_size; n = n + 1) {
+                    for (let m: int = 0; m < input_size; m = m + 1) {
+                        for (let n: int = 0; n < output_size; n = n + 1) {
                             w[m * output_size + n] -= lr * g[n] * activations[l][m];
                         }
                     }
@@ -219,7 +200,7 @@ fn fit(
             }
         }
 
-        loss /= std::math::inttof(inputs[-1]: int);
+        loss /= std::math::inttof(inputs.len);
         std::io::print("Epoch ");
         std::io::printi(epoch + 1);
         std::io::print(": Loss = ");
@@ -228,7 +209,7 @@ fn fit(
         std::io::printi(correct);
         std::io::print(", Incorrect: ");
         std::io::printi(incorrect);
-        let accuracy: float = std::math::inttof(correct) / std::math::inttof(inputs[-1]: int);
+        let accuracy: float = std::math::inttof(correct) / std::math::inttof(inputs.len);
         std::io::print(", Accuracy = ");
         std::io::printf(accuracy * 100.0);
         std::io::print(", Learning Rate = ");
@@ -251,20 +232,18 @@ fn test(
     // Test the neural network and return accuracy
     let correct: int = 0;
     let incorrect: int = 0;
-    let i: int;
 
-    let output_layer: int = activations[-1]: int - 1;
+    let output_layer: int = activations.len - 1;
     let predicted_class: int = 0;
     let output_size: int = dims[output_layer];
 
-    for (i = 0; i < inputs[-1]: int; i = i + 1) {
+    for (let i: int = 0; i < inputs.len; i = i + 1) {
         // Forward pass
         predict(inputs[i], weights, activations, net_inputs, dims);
         // Get predicted class
         
         let max_value: float = activations[output_layer][0];
-        let k: int;
-        for (k = 1; k < output_size; k = k + 1) {
+        for (let k: int = 1; k < output_size; k = k + 1) {
             if (activations[output_layer][k] > max_value) {
                 max_value = activations[output_layer][k];
                 predicted_class = k;
@@ -283,7 +262,7 @@ fn test(
     std::io::print(", Incorrect: ");
     std::io::printiln(incorrect);
 
-    let accuracy: float = std::math::inttof(correct) / std::math::inttof(inputs[-1]: int);
+    let accuracy: float = std::math::inttof(correct) / std::math::inttof(inputs.len);
     std::io::print("Test Accuracy: ");
     std::io::printfln(accuracy * 100.0);
     return accuracy;

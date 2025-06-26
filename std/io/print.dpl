@@ -3,7 +3,7 @@
 fn print(s: str): int {
 	// Print s to stdout
 
-	s[-1] : int * 8;	// Move the length of the string into rax
+	s.len * 8;	// Move the length of the string into rax
 	asm "	mov rdx, rax	; length of string";
 	s;	// Move the pointer to the string into rax
 	asm "	mov rsi, rax	; pointer to string
@@ -112,7 +112,7 @@ fn printarray:<T>(a: array[T]): int {
 
 	print("[");
 	let i: int;
-	for (i = 0; i < a[-1] : int; i = i + 1) {
+	for (i = 0; i < a.len; i = i + 1) {
 		if (i > 0) {
 			print(", ");
 		}
@@ -133,7 +133,7 @@ fn printarrayf:<T>(a: array[T]): int {
 
 	print("[");
 	let i: int;
-	for (i = 0; i < a[-1] : int; i = i + 1) {
+	for (i = 0; i < a.len; i = i + 1) {
 		if (i > 0) {
 			print(", ");
 		}

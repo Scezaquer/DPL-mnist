@@ -1,11 +1,11 @@
 fn maxi(arr: array[int]): int {
 	// Return the maximum value in the array
-	if (arr[-1] == 0) {
+	if (arr.len == 0) {
 		exception("Array is empty", 1);
 	}
 	let max: int = arr[0];
 	let i: int;
-	for (i = 1; i < arr[-1]; i = i + 1) {
+	for (i = 1; i < arr.len; i = i + 1) {
 		if (arr[i] > max) {
 			max = arr[i];
 		}
@@ -15,12 +15,12 @@ fn maxi(arr: array[int]): int {
 
 fn mini(arr: array[int]): int {
 	// Return the minimum value in the array
-	if (arr[-1] == 0) {
+	if (arr.len == 0) {
 		exception("Array is empty", 1);
 	}
 	let min: int = arr[0];
 	let i: int;
-	for (i = 1; i < arr[-1]; i = i + 1) {
+	for (i = 1; i < arr.len; i = i + 1) {
 		if (arr[i] < min) {
 			min = arr[i];
 		}
@@ -32,7 +32,7 @@ fn sumi(arr: array[int]): int {
 	// Return the sum of all elements in the array
 	let sum: int = 0;
 	let i: int;
-	for (i = 0; i < arr[-1]; i = i + 1) {
+	for (i = 0; i < arr.len; i = i + 1) {
 		sum = sum + arr[i];
 	}
 	return sum;
@@ -40,12 +40,12 @@ fn sumi(arr: array[int]): int {
 
 fn maxf(arr: array[float]): float {
 	// Return the maximum value in the array
-	if (arr[-1]: int == 0) {
+	if (arr.len == 0) {
 		exception("Array is empty", 1);
 	}
 	let max: float = arr[0];
 	let i: int;
-	for (i = 1; i < arr[-1]: int; i = i + 1) {
+	for (i = 1; i < arr.len; i = i + 1) {
 		if (arr[i] > max) {
 			max = arr[i];
 		}
@@ -55,12 +55,12 @@ fn maxf(arr: array[float]): float {
 
 fn minf(arr: array[float]): float {
 	// Return the minimum value in the array
-	if (arr[-1]: int == 0) {
+	if (arr.len == 0) {
 		exception("Array is empty", 1);
 	}
 	let min: float = arr[0];
 	let i: int;
-	for (i = 1; i < arr[-1]: int; i = i + 1) {
+	for (i = 1; i < arr.len; i = i + 1) {
 		if (arr[i] < min) {
 			min = arr[i];
 		}
@@ -72,7 +72,7 @@ fn sumf(arr: array[float]): float {
 	// Return the sum of all elements in the array
 	let sum: float = 0.0;
 	let i: int;
-	for (i = 0; i < arr[-1]: int; i = i + 1) {
+	for (i = 0; i < arr.len; i = i + 1) {
 		sum = sum + arr[i];
 	}
 	return sum;
@@ -81,7 +81,7 @@ fn sumf(arr: array[float]): float {
 fn zeroi(arr: array[int]): array[int] {
 	// Set all elements in the array to zero
 	let i: int;
-	for (i = 0; i < arr[-1]; i = i + 1) {
+	for (i = 0; i < arr.len; i = i + 1) {
 		arr[i] = 0;
 	}
 	return arr;
@@ -90,7 +90,7 @@ fn zeroi(arr: array[int]): array[int] {
 fn zerof(arr: array[float]): array[float] {
 	// Set all elements in the array to zero
 	let i: int;
-	for (i = 0; i < arr[-1]: int; i = i + 1) {
+	for (i = 0; i < arr.len; i = i + 1) {
 		arr[i] = 0.0;
 	}
 	return arr;

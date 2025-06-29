@@ -1,10 +1,21 @@
-#include <io>
+fn printerr(s: str): int {
+	// Print s to stderr
+
+	s.len * 8;	// Move the length of the string into rax
+	asm "	mov rdx, rax	; length of string";
+	s;	// Move the pointer to the string into rax
+	asm "	mov rsi, rax	; pointer to string
+	mov rax, 1		; syscall: sys_write
+	mov rdi, 2		; file descriptor: stderr
+	syscall" : int;
+}
 
 fn exception(e: str, error_code: int): int {
 	// Print the exception message to standard error and exit with the error code
 
-	io::print("Exception: ");
-	io::println(e);
+	printerr("Exception: ");
+	printerr(e);
+	printerr("\n");
 
 	error_code;
 	asm "	mov rdi, rax

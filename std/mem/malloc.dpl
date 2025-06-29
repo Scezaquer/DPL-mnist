@@ -1,5 +1,261 @@
-fn malloc(size: int): *void {
+#include <../exception.dpl>
+#include <../io/print.dpl>
+
+fn get_current_break(): int {
+    // Get the current break point of the heap as an integer
+    // This is the address of the end of the heap, where new memory can be allocated
+
+    asm "mov rax, 12	; syscall: sys_brk
+    mov rdi, 0	; get current break
+    syscall": int;
 }
 
-fn free(ptr: *void): void {
+fn sbrk(dwords: int): array[int] {
+	// sbrk, or sys_brk, is a syscall used to allocate memory in the heap
+	// sys_brk(0) returns the current top of the heap, and sys_brk(size)
+    // allocates bytes and returns the new top of the heap.
+
+    // dwords is the number of double words (1 dword = 8 bytes) to allocate
+
+    // When allocating blocks, they are surrounded by metadata which goes
+    // [free flag (8 bytes)]    <- Highest address
+    // [previous break point (8 bytes)] <- is 0 if this is the first block
+    // [length of the block (8 bytes)]
+    // [block (len of block bytes)]
+    // [length of the block (8 bytes)]
+
+    // Length of the block needs to be at the beginning so that arr.len works as expected,
+    // but also at the end otherwise you can't know how long the first block is
+    // since the previous break point is 0.
+
+	if (dwords <= 0) {
+		exception("sbrk: size must be at least 1", 1);
+	}
+
+    asm "	; Get current break point first
+    mov rax, 12	; syscall: sys_brk  
+    mov rdi, 0	; get current break
+    syscall
+    mov rbx, rax	; save old break in rbx";
+
+    dwords * 8; // Convert dwords to bytes, move result into rax
+    asm"    ; Now allocate new memory
+    mov rdi, rbx    ; rbx contains the old break point
+    add rdi, rax	; add size to the old break point
+    add rdi, 32	; add 32 bytes for metadata
+    mov rax, 12	; syscall: sys_brk
+    syscall
+
+    ; rbx now contains the start of our allocated block, and rax contains the new break point
+    mov [rax - 16], rbx	; previous break point is stored at rax - 16
+    mov dword [rax - 8], 1	; mark the block as not free (1 = not free, 0 = free)
+    push rax    ; save the new break point on the stack";
+
+    dwords;   // Move into rax
+    asm "	pop rcx     ; restore the new break point from the stack
+    mov [rcx - 24], rax	; store the size of the block at rcx - 24
+    mov [rbx], rax	; store array length at start of block
+    mov rax, rbx	; return the pointer
+    add rax, 8	; move past the metadata": array[int];
+}
+
+fn malloc_call_count(): int {
+    // Return the number of times malloc has been called
+    asm "mov rax, [malloc_counter]": int; // Load the value of malloc_counter
+}
+
+fn malloc(size: int): array[int] {
+    // let breakpoint: int = get_current_break();
+    let malloc_used: int = malloc_call_count();
+    asm "   add rax, 1
+    mov [malloc_counter], rax"; // Add 1 to the malloc counter
+
+    let ptr: array[int];
+    let block_size: int;
+
+    // If this is the first malloc call, we need to set the next pointer to null
+    if (malloc_used == 0) { // TODO: change this to (malloc_used == 0) when i figure out why it segfaults
+        ptr = sbrk(size);
+        ptr[ptr.len + 1] = 0; // Set the next pointer to null
+    } else {
+        // If malloc has been used, we need to find the next free block
+        let current: int = get_current_break(); // Get the current break point
+        let found: bool = false;
+
+        while (current != 0 && !found) {
+            if ((current: array[int])[-1] == 0) { // Check if the block is free
+                block_size = (current: array[int])[-3];
+                if (block_size == size || size <= block_size - 4) {
+                    // If the block size is equal to the requested size or
+                    // larger than the requested size minus metadata
+                    // we can use this block
+                    found = true;
+                } else {
+                    current = (current: array[int])[-2]; // Move to the next block
+                    false;
+                }
+                0;
+            } else {
+                current = (current: array[int])[-2]; // Move to the next block
+            }
+        }
+
+        if (!found) {
+            ptr = sbrk(size); // Allocate a new block if no free block was found
+            0;
+        } else {
+            ptr = (current - (block_size + 3) * 8): array[int]; // Use the found free block
+
+            if (block_size == size){
+                ptr[ptr.len + 2] = 1; // Mark the block as used
+            } else {
+                // If the block is larger than the requested size, we need to split it
+                let new_block: array[int] = (ptr: int + size*8 + 32): array[int];
+                new_block[-1] = block_size - size - 4; // Set the size of the new block
+                new_block[new_block.len] = new_block.len;
+
+                let old_next: int = ptr[ptr.len + 1]; // Save the old next pointer
+                ptr[ptr.len + 1] = new_block: int - 8; // Set the next pointer of the used block
+
+                ptr[-1] = size;
+                ptr[ptr.len] = size;
+                ptr[ptr.len + 1] = old_next; // Set the next pointer of the used block
+                ptr[ptr.len + 2] = 1; // Mark the block as used
+            }
+        }
+    }
+
+	return ptr;
+}
+
+fn merge_with_next_if_free(ptr: array[int]): array[int] {
+    // This function merges the current block with the next block if the next block is free
+
+    // See if the next block is free
+    let next: int = ptr[ptr.len + 1]; // Get the next pointer
+    if (next != 0) {
+        if (next: array[int])[-1] == 0 {
+            // If the next block is free, we can merge the blocks
+            let next_size: int = (next: array[int])[-3];
+            ptr[ptr.len + 1] = (next: array[int])[-2]; // Set the next pointer to the next block's next pointer
+            ptr[ptr.len] += next_size + 4; // Increase the size of the current block
+            ptr[-next_size - 5] = ptr[ptr.len]; // Set the size of the current block
+            ptr = (ptr: int - (next_size + 4) * 8): array[int]; // Move the pointer to the start of the current block
+        }
+    }
+    return ptr; // Return the merged block
+}
+
+fn free(ptr: array[int]): int {
+    // Free a block of memory allocated by malloc
+    // This will mark the block as free and add it to the linked list of free blocks
+
+    if (ptr.len <= 0) {
+        exception("free: pointer must be valid", 1);
+    }
+
+    let size: int = ptr.len; // Get the size of the block
+    ptr[ptr.len + 2] = 0; // Flag the block as free
+
+    ptr = merge_with_next_if_free(ptr); // Merge with the next block if it is free
+
+    // See if the previous block is free
+    if ptr: int + (ptr.len + 3)*8 >= get_current_break() {
+        return 0; // If the block is at the end of the heap, we don't need to do anything
+    }
+    
+    if ptr[ptr.len + ptr[ptr.len + 3] + 6] == 0 {
+        ptr = (ptr: int + (ptr.len + 4)*8): array[int]; // Move the pointer to the previous block
+        ptr = merge_with_next_if_free(ptr);
+    }
+
+    return 0; // Return 0 to indicate success
+}
+
+fn calloc(size: int): array[int] {
+    // calloc allocates memory and initializes it to zero
+    let ptr: array[int] = malloc(size);
+    arrset:<int>(ptr, 0); // Set all elements to zero
+    return ptr;
+}
+
+fn realloc(ptr: array[int], new_size: int): array[int] {
+    if (new_size <= 0) {
+        exception("realloc: new size must be at least 1", 1);
+    }
+
+    let old_size: int = ptr.len;
+    let new_ptr: array[int] = malloc(new_size);
+
+    // Copy old data to new pointer
+    for (let i: int = 0; i < old_size && i < new_size; i += 1) {
+        new_ptr[i] = ptr[i];
+    }
+
+    free(ptr); // Free the old pointer
+    return new_ptr;
+}
+
+fn arrset:<T>(arr: array[T], value: T): T {
+    for (let i: int = 0; i < arr.len; i += 1) {
+        arr[i] = value;
+    }
+}
+
+fn memset(ptr: array[int], value: int, size: int): int {
+    // Very similar to arrset, but ignores the length of the array,
+    // letting the user set arbitrary chinks of memory as long as they have
+    // a pointer to them.
+    if (size < 0) {
+        exception("memset: size must be a positive number", 1);
+    }
+
+    for (let i: int = 0; i < size; i += 1) {
+        ptr[i] = value;
+    }
+}
+
+fn print_heap_layout(): int {
+    let current: int = get_current_break(); // Get the current break point
+    let counter: int = 0;
+
+    println("Free flag (0=free), \taddress, \tnext, \t\tlen, \tlen(+meta)");
+
+    while (current != 0) {
+        print("\t\t");
+        printi((current: array[int])[-1]);
+        print(", \t");
+        printi(current);
+        print(", \t");
+        printi((current: array[int])[-2]);
+        if (current: array[int])[-2] == 0 {
+            print(", \t\t");
+        } else {
+            print(", \t");
+        }
+        let len1: int = *(current - (current: array[int])[-3] * 8 - 32): *int;
+        printi(len1);
+        print(", \t");
+        let len2: int = (current: array[int])[-3];
+        printi(len2);
+        print("(");
+        printi(len2 + 4);
+        print(")");
+
+        if (len1 != len2) {
+            println(" <- !! len missmatch, This block is corrupted !!");
+        } else {
+            print("\n");
+        }
+
+        current = (current: array[int])[-2]; // Move to the next block
+        counter += 1;
+    }
+
+    print("Malloc has been called ");
+    printi(malloc_call_count());
+    println(" times.");
+    print("There are ");
+    printi(counter);
+    println(" blocks in total");
 }

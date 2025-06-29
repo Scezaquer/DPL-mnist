@@ -2,7 +2,8 @@
 #include <../math/cast.dpl>
 
 fn random(seed: int): int {
-	// A simple linear congruential generator (LCG) for demonstration purposes
+	// A simple linear congruential generator (LCG)
+	// Generates pseudo-random numbers in the range [0, 2^32 - 1)
 	let a: int = 1664525;
 	let c: int = 1013904223;
 	let m: int = 0xFFFFFFFF; // 2^32 - 1

@@ -16,7 +16,7 @@ fn sigmoid_derivative(x: float): float {
 
 fn softmax(x: array[float]): array[float] {
     // Apply softmax activation function to the input array
-    let max_val: float = std::math::maxf(x);
+    let max_val: float = std::math::max:<float>(x);
     let exp_sum: float = 0.0;
 
     for (let i: int = 0; i < x.len; i = i + 1) {
@@ -129,7 +129,7 @@ fn fit(
         let loss: float = 0.0;
 
         for (let batch_start: int = 0; batch_start < inputs.len; batch_start = batch_start + batch_size) {
-            let batch_end: int = std::math::mini([batch_start + batch_size, inputs.len]);
+            let batch_end: int = std::math::min:<int>([batch_start + batch_size, inputs.len]);
 
             for (let i: int = batch_start; i < batch_end; i = i + 1) {
                 // Forward pass
@@ -289,5 +289,6 @@ fn main(): int{
 
     #include <mnist_test.dpl>
     test(mnist_test, mnist_test_labels, weights, activations, net_inputs, dims);
+
     return 0;
 }

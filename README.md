@@ -1,6 +1,6 @@
 This is a simple neural network for handwritten digits image recognition.
 
-It's specificity is that it is written entirely in DPL, my homemade language. ([Repo](https://github.com/Scezaquer/dubious-programming-language)
+It's specificity is that it is written entirely in DPL, my homemade language. ([Repo](https://github.com/Scezaquer/dubious-programming-language))
 
 The main file is neural_network.dpl. Since there isn't any way to read files
 in dpl yet, I made the download_dataset.py script to generate mnist_train.dpl,
